@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "queue.h"
-
+#undef __LIST_HAVE_TYPEOF
 /* Notice: sometimes, Cppcheck would find the potential NULL pointer bugs,
  * but some of them cannot occur. You can suppress them by adding the
  * following line.
@@ -23,12 +23,13 @@ struct list_head *q_new()
 /* Free all storage used by queue */
 void q_free(struct list_head *head)
 {
-    if (!head)
+    if (!head) {
         return;
-    while (list_empty(head) == false) {
-        struct list_head *n = head->next;
-        list_del(n);
-        free(n);
+    }
+    element_t *entry = NULL, *safe;
+    list_for_each_entry_safe (entry, safe, head, list) {
+        list_del(&entry->list);
+        q_release_element(entry);
     }
     free(head);
 }
@@ -77,12 +78,12 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
     if (!head || list_empty(head))
         return NULL;
     element_t *remove_node = list_first_entry(head, element_t, list);
+    list_del(&remove_node->list);
     if (sp) {
         strncpy(sp, remove_node->value, bufsize - 1);
         sp[bufsize - 1] = '\0';
     }
-    list_del(&remove_node->list);
-    return NULL;
+    return remove_node;
 }
 
 /* Remove an element from tail of queue */
@@ -91,12 +92,12 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
     if (!head || list_empty(head))
         return NULL;
     element_t *remove_node = list_last_entry(head, element_t, list);
+    list_del(&remove_node->list);
     if (sp) {
         strncpy(sp, remove_node->value, bufsize - 1);
         sp[bufsize - 1] = '\0';
     }
-    list_del(&remove_node->list);
-    return NULL;
+    return remove_node;
 }
 
 /* Return number of elements in queue */
