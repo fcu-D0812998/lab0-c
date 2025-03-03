@@ -158,15 +158,46 @@ bool q_delete_dup(struct list_head *head)
 void q_swap(struct list_head *head)
 {
     // https://leetcode.com/problems/swap-nodes-in-pairs/
+    if (!head || list_empty(head))
+        return;
+    struct list_head *node = head->next;
+    while (node != head && node->next != head) {
+        struct list_head *node2 = node->next;
+        list_del(node);
+        list_add(node, node2);
+        node = node->next;
+    }
 }
 
 /* Reverse elements in queue */
-void q_reverse(struct list_head *head) {}
+void q_reverse(struct list_head *head)
+{
+    if (!head || list_empty(head))
+        return;
+    struct list_head *pos, *safe;
+    list_for_each_safe (pos, safe, head)
+        list_move(pos, head);
+}
 
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
     // https://leetcode.com/problems/reverse-nodes-in-k-group/
+    if (!head || list_empty(head))
+        return;
+    struct list_head *pos, *safe, *cut = head;
+    int count = 0;
+    list_for_each_safe (pos, safe, head) {
+        count++;
+        if (count % k == 0) {
+            LIST_HEAD(tmp);
+            count = 0;
+            list_cut_position(&tmp, cut, pos);
+            q_reverse(&tmp);
+            list_splice(&tmp, cut);
+            cut = safe->prev;
+        }
+    }
 }
 
 /* Sort elements of queue in ascending/descending order */
