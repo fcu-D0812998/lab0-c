@@ -200,8 +200,43 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
+void _list_merge(struct list_head *left, struct list_head *right, bool descend)
+{
+    struct list_head head;
+    INIT_LIST_HEAD(&head);
+    while (!list_empty(left) && !list_empty(right)) {
+        int cmp = strcmp(list_first_entry(left, element_t, list)->value,
+                         list_first_entry(right, element_t, list)->value);
+        if ((descend && cmp > 0) || (!descend && cmp <= 0)) {
+            list_move_tail(left->next, &head);
+        } else {
+            list_move_tail(right->next, &head);
+        }
+    }
+    if (!list_empty(right))
+        list_splice_tail(right, &head);
+    list_splice(&head, left);
+}
+
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+    struct list_head *mid = head;
+    int size = q_size(head) / 2;
+    for (int i = 0; i < size; i++)
+        mid = mid->next;
+    struct list_head left, right;
+    INIT_LIST_HEAD(&left);
+    INIT_LIST_HEAD(&right);
+    list_cut_position(&left, head, mid);
+    list_cut_position(&right, head, head->prev);
+    q_sort(&left, descend);
+    q_sort(&right, descend);
+    _list_merge(&left, &right, descend);
+    list_splice(&left, head);
+}
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
@@ -256,5 +291,19 @@ int q_descend(struct list_head *head)
 int q_merge(struct list_head *head, bool descend)
 {
     // https://leetcode.com/problems/merge-k-sorted-lists/
-    return 0;
+    if (!head || list_empty(head))
+        return 0;
+    else if (list_is_singular(head))
+        return q_size(list_first_entry(head, queue_contex_t, chain)->q);
+    queue_contex_t *tmp = NULL,
+                   *first = list_first_entry(head, queue_contex_t, chain);
+    list_for_each_entry (tmp, head, chain) {
+        if (tmp && tmp->q && tmp != first) {
+            list_splice_tail_init(tmp->q, first->q);
+            first->size += tmp->size;
+            tmp->size = 0;
+        }
+    }
+    q_sort(first->q, descend);
+    return first->size;
 }
